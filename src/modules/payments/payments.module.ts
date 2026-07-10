@@ -1,11 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
-import { PaymentsController } from './payments.controller';
+import { PaymentsController } from './payments.controller'; // 👈 Added this import
 
 @Module({
-  imports: [ConfigModule],
-  controllers: [PaymentsController],
+  controllers: [PaymentsController], // 👈 Added this controller registration array
   providers: [PaymentsService],
   exports: [PaymentsService],
 })

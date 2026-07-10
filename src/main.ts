@@ -8,14 +8,29 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaService } from './prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
+import { json } from 'express'; // 👈 Added this express body parser import
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+  
+  // Clean initialization passing bufferLogs and rawBody parsing capabilities to the underlying server
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 4000);
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+
+  // ── Stripe Raw Body Preservation ──────────────────────────────────────────
+  // FIX: This interceptor checks the url context. If it's a webhook call, it leaves the body completely raw
+  app.use(
+    json({
+      verify: (req: any, res: any, buf: Buffer) => {
+        if (req.originalUrl && req.originalUrl.includes('/payments/webhook')) {
+          req.rawBody = buf; // Preserve the exact unparsed binary bytes string buffer
+        }
+      },
+    }),
+  );
 
   const adminEmail = configService.get<string>('ADMIN_EMAIL')?.toLowerCase().trim();
   const adminPassword = configService.get<string>('ADMIN_PASSWORD');

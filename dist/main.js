@@ -10,12 +10,20 @@ const http_exception_filter_1 = require("./common/filters/http-exception.filter"
 const logging_interceptor_1 = require("./common/interceptors/logging.interceptor");
 const prisma_service_1 = require("./prisma/prisma.service");
 const bcrypt = require("bcryptjs");
+const express_1 = require("express");
 async function bootstrap() {
     const logger = new common_1.Logger('Bootstrap');
     const app = await core_1.NestFactory.create(app_module_1.AppModule, { bufferLogs: true, rawBody: true });
     const configService = app.get(config_1.ConfigService);
     const port = configService.get('PORT', 4000);
     const nodeEnv = configService.get('NODE_ENV', 'development');
+    app.use((0, express_1.json)({
+        verify: (req, res, buf) => {
+            if (req.originalUrl && req.originalUrl.includes('/payments/webhook')) {
+                req.rawBody = buf;
+            }
+        },
+    }));
     const adminEmail = configService.get('ADMIN_EMAIL')?.toLowerCase().trim();
     const adminPassword = configService.get('ADMIN_PASSWORD');
     if (adminEmail && adminPassword) {

@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as Stripe from 'stripe';
+import Stripe = require('stripe');
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 
 /**
@@ -10,17 +10,19 @@ import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
  */
 @Injectable()
 export class PaymentsService {
-  private stripe: Stripe.Stripe;
+  // When using import = require, instances are typed as Stripe (the instance namespace)
+  private stripe: Stripe;
 
   constructor(private configService: ConfigService) {
     const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!stripeSecretKey) {
       throw new Error('STRIPE_SECRET_KEY is missing in environment variables');
     }
-    this.stripe = new Stripe.Stripe(stripeSecretKey, {
-      apiVersion: '2026-06-24.dahlia',
+    
+    this.stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2026-06-24.dahlia' as any,
     });
-  }
+  } // <--- FIX: Added missing constructor closing bracket
 
   /**
    * Creates a secure Stripe PaymentIntent for multi-currency transactions.
@@ -59,10 +61,10 @@ export class PaymentsService {
    * 
    * @param payload Raw binary stream buffer retrieved from the incoming HTTP request.
    * @param signature The unique stripe-signature verification header string.
-   * @returns {Stripe.Stripe.Event} A fully typed, structurally validated Stripe Event instance.
+   * @returns {Stripe.Event} A fully typed, structurally validated Stripe Event instance.
    * @throws {Error} If the local webhook configuration mapping is missing.
    */
-  constructWebhookEvent(payload: Buffer, signature: string): Stripe.Stripe.Event {
+  constructWebhookEvent(payload: Buffer, signature: string): Stripe.Event {
     const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
       throw new Error('STRIPE_WEBHOOK_SECRET is missing');

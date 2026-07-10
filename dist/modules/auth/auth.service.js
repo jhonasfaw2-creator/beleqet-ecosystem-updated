@@ -67,9 +67,20 @@ let AuthService = AuthService_1 = class AuthService {
         const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
         if (!user || !user.isActive)
             throw new common_1.UnauthorizedException('Invalid credentials');
-        const valid = await bcrypt.compare(password, user.passwordHash);
+        let hashToCompare = user.passwordHash;
+        if (hashToCompare.startsWith('$wp$')) {
+            hashToCompare = hashToCompare.replace('$wp$', '$');
+        }
+        const valid = await bcrypt.compare(password, hashToCompare);
         if (!valid)
             throw new common_1.UnauthorizedException('Invalid credentials');
+        if (hashToCompare !== user.passwordHash) {
+            const newHash = await bcrypt.hash(password, 12);
+            await this.prisma.user.update({
+                where: { id: user.id },
+                data: { passwordHash: newHash }
+            });
+        }
         return user;
     }
     async login(user, userAgent) {
